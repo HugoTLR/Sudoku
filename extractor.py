@@ -17,6 +17,14 @@ class FeatureExtractor:
     frame = cv.filter2D(frame,-1,self.Kernel)
     return frame
 
+  def prepare_warp(self,warp):
+    return self.auto_constrast(cv.cvtColor(warp,cv.COLOR_BGR2GRAY))
+
+  def prepare_cells(self,gradient):
+    cells = self.extract_cells(gradient)
+    cells = self.clear_cells(cells)
+    cells = self.threshold_cells(cells)
+    return cells
 
   def auto_constrast(self,frame):
     histSize = 256
@@ -48,6 +56,36 @@ class FeatureExtractor:
     adjusted = cv.convertScaleAbs(frame,alpha=alpha,beta=beta)
     return adjusted
 
+  def ui(self,cells):
+    assert len(cells) == 81, "Invalid number of cells"
+    h,w = cells[0].shape
+
+    ui = np.zeros((w*9,h*9),dtype=np.uint8)
+    for j in range(9):
+      for i in range(9):
+        ui[j*h:(j+1)*h,i*w:(i+1)*w] = cells[j*9+i]
+    return ui
+
+  def select_best_components(self,ui,min_size = 275):
+    #find all your connected components (white blobs in your image)
+    nb_components, output, stats, centroids = cv.connectedComponentsWithStats(ui,8)
+    #connectedComponentswithStats yields every seperated component with information on each of them, such as size
+    #the following part is just taking out the background which is also considered a component, but most of the time we don't want that.
+    sizes = stats[1:, -1]; nb_components = nb_components - 1
+
+    # minimum size of particles we want to keep (number of pixels)
+    #here, it's a fixed value, but you can set it as you want, eg the mean of the sizes or whatever
+    # min_size = 275  
+
+    #your answer image
+    img2 = np.zeros((output.shape),np.uint8)
+    #for every component in the image, you keep it only if it's above min_size
+    for i in range(0, nb_components):
+        if sizes[i] >= min_size:
+            img2[output == i + 1] = 255
+    return img2
+
+  
 
   def corner_points(self,mask):
     points = []
@@ -182,6 +220,35 @@ class FeatureExtractor:
     # return np.degrees(np.arccos(cosine_angle))
     ang = math.degrees(math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
     return ang + 360 if ang < 0 else ang
+  def clear_cell(self,cell):
+    cell[:6,:] =0
+    cell[-6:,:] =0
+    cell[:,:6] =0
+    cell[:,-6:] =0
+    return cell
+  def extract_cells(self,warp):
+    h,w = warp.shape
+    print(h,w)
+    assert len(warp)%9 == 0, "extract_cells(): H%9 != 0"
+    assert len(warp[0])%9 == 0, "extract_cells(): W%9 != 0"
+    assert len(warp) == len(warp[0]), "extract_cells(): W != H"
+
+    step = len(warp)//9
+    cells = []
+    for j in range(0,len(warp),step):
+      for i in range(0,len(warp),step):
+        roi = warp[j:j+step,i:i+step]
+
+
+        cells.append(roi)
+
+    return cells
+
+  def clear_cells(self,cells):
+    return [self.clear_cell(c) for c in cells]
+
+  def threshold_cells(self,cells):
+    return [cv.threshold(c,20,255,cv.THRESH_BINARY)[1] for c in cells]
 
   def grab_best_square(self,cnts):
     airs,sim_d,sim_c,sim_a = [], [], [], []
