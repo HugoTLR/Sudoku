@@ -75,13 +75,18 @@ if __name__ == "__main__":
 
             prediction = sudoku_model.predict(roi).argmax(axis=1)[0]
 
-            print(prediction)
+            # print(prediction)
 
             board[i//9][i%9] = prediction
 
         sudoku = Sudoku()
         sudoku.initialize_solved_board(board)
-
+        sudoku.solve()
+        if sudoku.unsolvable:
+          print("unsolvable sudok")
+        else:
+          print("solved")
+          sudoku.show()
             #PREDICT
             # preds[i] = 
 
