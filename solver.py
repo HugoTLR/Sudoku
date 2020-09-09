@@ -3,6 +3,28 @@ import time
 class Sudoku:
   def __init__(self):
     self.backtrack_index = 0 #Index for backtracking algorithm
+    self.unsolvable = False
+
+  def show(self):
+    res = ""
+    for j,row in enumerate(self.board):
+      if j%3 == 0:
+        res = res = res + "+-------+-------+-------+\n"
+
+      for i, col in enumerate(row):
+        if col != 0:tmp = f" {col}"
+        else:tmp = f"  " 
+
+        if i%3 == 0:
+          tmp = "|" + tmp
+        elif i%3 == 2:
+          tmp = tmp + " "
+        res = res + tmp
+      res = res + "|\n"
+    res = res + "+-------+-------+-------+\n"
+    print(res)
+
+
 
   def __str__(self):
     res = ""
@@ -31,6 +53,9 @@ class Sudoku:
   def initialize_solved_board(self,board):
 
     self.board = board
+
+    self.show()
+
     self.solve_cells = []
     for j,row in enumerate(self.board):
       for i,value in enumerate(row):
@@ -38,13 +63,16 @@ class Sudoku:
 
   def solve(self):
     start = time.time()
-    while self.backtrack_index < len(self.solve_cells):
+    while not self.unsolvable and self.backtrack_index < len(self.solve_cells):
       self.move_forward()
       cell = self.set_cell_value()
       cell.increment()
       self.change_cells(cell)
+    if self.unsolvable:
+      print("Unsolvable")
+    else:
+      print(f"Solved Sudoku in {time.time()-start:.3f} seconds")
 
-    print(f"Solved Sudoku in {time.time()-start:.3f} seconds")
   def move_forward(self):
     while self.backtrack_index < len(self.solve_cells) -1 and self.solve_cells[self.backtrack_index].solved:
       self.backtrack_index += 1
@@ -61,10 +89,13 @@ class Sudoku:
       self.decrement_cell(cell)
 
   def decrement_cell(self,cell):
-    while cell.current_test_index == len(cell.potential_values) - 1:
+    while not self.unsolvable and cell.current_test_index == len(cell.potential_values) - 1:
       self.reset_cell(cell)
       self.backtrack()
-      cell = self.solve_cells[self.backtrack_index]
+      try:
+        cell = self.solve_cells[self.backtrack_index]
+      except:
+        self.unsolvable = True
     cell.current_test_index += 1
 
   def reset_cell(self,cell):
@@ -74,8 +105,11 @@ class Sudoku:
 
   def backtrack(self):
     self.backtrack_index -= 1
-    while self.solve_cells[self.backtrack_index].solved:
-      self.backtrack_index -= 1
+    try:
+      while self.solve_cells[self.backtrack_index].solved:
+        self.backtrack_index -= 1
+    except:
+      self.unsolvable = True
 
 class Cell:
   def __init__(self,row,col,val,game):
@@ -108,8 +142,11 @@ class Cell:
 
   def set_value(self):
     if not self.solved:
-      self.value = self.potential_values[self.current_test_index]
-      self.game.board[self.row][self.col] = self.value
+      try:
+        self.value = self.potential_values[self.current_test_index]
+        self.game.board[self.row][self.col] = self.value
+      except:
+        self.game.unsolvable = True
 
 
   def increment(self):
@@ -130,7 +167,10 @@ class Cell:
 
 if __name__ == "__main__":
   sudoku = Sudoku()
-  board = [[1,2,0,0,7,0,5,6,0],\
+
+
+  #EASY
+  board = [[0,2,0,0,7,0,5,6,0],\
       [5,0,7,9,3,2,0,8,0],\
       [0,0,0,0,0,1,0,0,0],\
       [0,1,0,2,4,0,0,5,0],\
@@ -139,8 +179,26 @@ if __name__ == "__main__":
       [0,0,0,7,0,0,0,0,0],\
       [0,8,0,4,2,3,7,0,1],\
       [0,3,4,0,1,0,0,2,8]]
+
+  #MED
+
+  #12 SEcs to solve, find a better algs
+  # board = [[0,8,0,0,0,7,0,0,9],\
+  #     [1,0,0,0,0,0,6,0,0],\
+  #     [0,0,0,3,0,0,0,8,0],\
+  #     [0,0,2,0,3,0,0,0,7],\
+  #     [0,0,0,2,1,4,0,0,0],\
+  #     [5,0,0,0,9,0,4,0,0],\
+  #     [0,5,0,0,0,3,0,0,0],\
+  #     [0,0,4,0,0,0,0,0,3],\
+  #     [6,0,0,1,0,0,0,2,0]]
+
+
+
+
   sudoku.initialize_solved_board(board)
 
   sudoku.solve()
 
   print(sudoku.__str__())
+  sudoku.show()
