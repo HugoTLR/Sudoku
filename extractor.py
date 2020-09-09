@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
-from imutils import perspective
+from imutils import perspective, grab_contours
+from skimage.segmentation import clear_border
 import math
 
 
@@ -209,23 +210,28 @@ class FeatureExtractor:
     return [int(round((p1[0]+p2[0])/2)),int(round((p1[1]+p2[1])/2))]
 
   def get_angle(self,a,b,c):
-    # a = np.array(a)
-    # b = np.array(b)
-    # c = np.array(c)
-    # ba = a - b
-    # bc = c - b
-    # cosine_angle = np.dot(ba,bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    # if math.isnan(cosine_angle):
-    #   print("GETANGLE ",ba,bc,cosine_angle)
-    # return np.degrees(np.arccos(cosine_angle))
     ang = math.degrees(math.atan2(c[1]-b[1], c[0]-b[0]) - math.atan2(a[1]-b[1], a[0]-b[0]))
     return ang + 360 if ang < 0 else ang
+
   def clear_cell(self,cell):
-    cell[:6,:] =0
-    cell[-6:,:] =0
-    cell[:,:6] =0
-    cell[:,-6:] =0
-    return cell
+    cnts = cv.findContours(cell, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    cnts = grab_contours(cnts)
+    # if no contours were found than this is an empty cell
+    if len(cnts) == 0:
+      return (np.zeros(cell.shape, dtype="uint8"),False)
+
+    c = max(cnts, key=cv.contourArea)
+    mask = np.zeros(cell.shape, dtype="uint8")
+    cv.drawContours(mask, [c], -1, 255, -1)
+    (h,w) = cell.shape
+
+    pct_filled = cv.countNonZero(mask) / float(w*h)
+    if pct_filled < .03:
+      return (np.zeros(cell.shape, dtype="uint8"),False)
+
+    cell = cv.bitwise_and(cell,cell,mask=mask) 
+    return (cell,True)
+
   def extract_cells(self,warp):
     h,w = warp.shape
     print(h,w)
@@ -245,10 +251,15 @@ class FeatureExtractor:
     return cells
 
   def clear_cells(self,cells):
-    return [self.clear_cell(c) for c in cells]
+    cleared_cells, digits = [],[]
+    for cell in cells:
+      cl,digit = self.clear_cell(cell)
+      cleared_cells.append(cl)
+      digits.append(digit)
+    return cleared_cells,digits
 
   def threshold_cells(self,cells):
-    return [cv.threshold(c,20,255,cv.THRESH_BINARY)[1] for c in cells]
+    return [clear_border(cv.threshold(c,0,255,cv.THRESH_BINARY_INV | cv.THRESH_OTSU)[1]) for c in cells]
 
   def grab_best_square(self,cnts):
     airs,sim_d,sim_c,sim_a = [], [], [], []
@@ -285,6 +296,7 @@ class FeatureExtractor:
     h,w = th.shape
     total_px = h*w
     return cv.countNonZero(th) > total_px/2 
+
   def unwrap(self,frame,corners):
     warp = perspective.four_point_transform(frame,corners)
     return warp
