@@ -6,10 +6,22 @@ from tensorflow.keras.models import load_model
 from skimage.metrics import structural_similarity as ssim
 import cv2 as cv
 import numpy as np
+
+from time import time
+
+from collections import defaultdict
 from solver import Sudoku
+import glob
 
-
+from cv2 import bitwise_not
+import logging
 if __name__ == "__main__":
+
+  logging_fn = f"./Videos/{len(glob.glob('./Videos/*.*'))}.log"
+  logging.basicConfig(filename=logging_fn,format='%(levelname)s:%(message)s', level=logging.INFO)
+
+
+
   SSIM_TRESHOLD = .6
   R_H,R_W = 288,288
   CELL_SIZE = 28
@@ -18,49 +30,80 @@ if __name__ == "__main__":
 
   sudoku_model = load_model(model_path)
 
-  cpt = 0 
   pat = cv.cvtColor(cv.imread("./pattern2.jpg"),cv.COLOR_BGR2GRAY)
   h,w = pat.shape
-  # assert R_S * 9 == R_H and R_S * 9 == R_W, "Incorrect size"
+
+
 
   di = Display()
   ex = FeatureExtractor()
 
+
+  frame_cpt = 0 
+
+
+
   cap = cv.VideoCapture(0)
   while True:
+    s_loop = time()
     ret,frame = cap.read()
+
     if not ret:
       break
-    orig = frame
-    frame = ex.auto_process(frame)
-    canny = ex.auto_canny(frame)
-    # canny = ex.canny_process(canny)
 
+    orig = frame
+    gray = cv.cvtColor(orig,cv.COLOR_BGR2GRAY)
 
     warp = None
-    cnts = cv.findContours(canny,cv.RETR_TREE,cv.CHAIN_APPROX_SIMPLE)
-    cnts = grab_contours(cnts)
-    if cnts:
-      #Retrieve corners of the contours the most "squared"
-      corners = ex.grab_best_square(cnts)
-      #Unwrap it
-      warp = ex.unwrap(orig,corners)
-       #Apply processing function
-      warp = ex.prepare_warp(warp)
-      #Resize
-      warp = cv.resize(warp,(R_W,R_H))
 
+
+    
+    s_e = time()
+    frame = ex.auto_process(frame)
+    logging.info(f" ex.auto_process\t:\t{time()-s_e:.3f} seconds")
+
+
+    puzzle, thresh = ex.find_puzzle(frame)
+    if puzzle is not None:
+
+      #Unwrap it
+      s_e = time()
+      warp_thresh = ex.unwrap(thresh,puzzle)
+      warp_cmp = bitwise_not(warp_thresh)
+      warp_cmp = cv.resize(warp_cmp,(w,h),interpolation=cv.INTER_AREA)
+
+      warp = ex.unwrap(gray,puzzle)
+
+      logging.info(f" ex.unwrap\t:\t{time()-s_e:.3f} seconds")
+      
       #Create a version to compare with an empty sudoku pattern
-      warp_cmp = cv.resize(warp,(w,h),interpolation=cv.INTER_AREA)
+      s_e = time()
       score_ssim = ssim(warp_cmp,pat, data_range=pat.max() - pat.min())
       score_ssim = score_ssim*.5 +.5
-      # print(f" Ssim={score_ssim}")
+      logging.info(f" ssim {score_ssim}\t:\t{time()-s_e:.3f} seconds")
+
+
 
       #If it looks like a sudoku
       if score_ssim > SSIM_TRESHOLD:
+        logging.warning(f"----- WE ARE IN -----")
+        cv.drawContours(orig,[puzzle],0,(255,0,0),3)
+
+        #Resize
+        warp = cv.resize(warp,(R_W,R_H))
+
+
+        s_e = time()
         cells = ex.extract_cells(warp)
+        logging.info(f" ex.extract_cells\t:\t{time()-s_e:.3f} seconds")
+
+        s_e = time()
         cells = ex.threshold_cells(cells)
+        logging.info(f" ex.threshold_cells\t:\t{time()-s_e:.3f} seconds")
+
+        s_e = time()
         cells,digits = ex.clear_cells(cells)
+        logging.info(f" ex.clear_cells\t:\t{time()-s_e:.3f} seconds")
 
         ui = ex.ui(cells)
 
@@ -78,7 +121,7 @@ if __name__ == "__main__":
             # print(prediction)
 
             board[i//9][i%9] = prediction
-
+        
         sudoku = Sudoku()
         sudoku.initialize_solved_board(board)
         sudoku.solve()
@@ -87,21 +130,36 @@ if __name__ == "__main__":
         else:
           print("solved")
           sudoku.show()
-            #PREDICT
-            # preds[i] = 
-
-
-
-
-
         cv.imshow("warp",np.hstack([warp,ui]))
         cv.waitKey()
 
-      cv.drawContours(orig,[corners],0,(255,0,0),3)
+        """
+        sudoku = Sudoku()
+        sudoku.initialize_solved_board(board)
+        sudoku.solve()
+        if sudoku.unsolvable:
+          print("unsolvable sudok")
+        else:
+          print("solved")
+          sudoku.show()
+        cv.waitKey()
+        """
+
+      # cv.drawContours(orig,[corners],0,(255,0,0),3)
 
 
     if di.show([orig]):
       break
+    
+    loop_time = time()-s_loop
+
+    # logs['frames'][frame_cpt]['time'] = loop_time
+    # logs['frames'][frame_cpt]['fps'] = 1/loop_time
+    # frame_cpt += 1
+    print(f"Looped in {loop_time:.3f} secs")
+
+
+
 
 
   cv.destroyAllWindows()

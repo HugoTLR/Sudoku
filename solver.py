@@ -64,6 +64,7 @@ class Sudoku:
   def solve(self):
     start = time.time()
     while not self.unsolvable and self.backtrack_index < len(self.solve_cells):
+      # print("[INFO] : Solve")
       self.move_forward()
       cell = self.set_cell_value()
       cell.increment()
@@ -75,9 +76,13 @@ class Sudoku:
 
   def move_forward(self):
     while self.backtrack_index < len(self.solve_cells) -1 and self.solve_cells[self.backtrack_index].solved:
+
+      # print("[INFO] : move_forward")
       self.backtrack_index += 1
 
   def set_cell_value(self):
+
+    # print("[INFO] : set_cell_value")
     cell = self.solve_cells[self.backtrack_index]
     cell.set_value()
     return cell
@@ -143,14 +148,18 @@ class Cell:
   def set_value(self):
     if not self.solved:
       try:
+        # print("[INFO] : SET_VALUE ")
         self.value = self.potential_values[self.current_test_index]
         self.game.board[self.row][self.col] = self.value
       except:
+        # print("[INFO] : SET_VALUE UNSOLVABLE")
         self.game.unsolvable = True
 
 
   def increment(self):
     while not self.is_valid_number() and self.current_test_index < len(self.potential_values) - 1:
+
+      # print("[INFO] : increment")
       self.current_test_index += 1
       self.set_value()
 
@@ -183,15 +192,27 @@ if __name__ == "__main__":
   #MED
 
   #12 SEcs to solve, find a better algs
-  # board = [[0,8,0,0,0,7,0,0,9],\
-  #     [1,0,0,0,0,0,6,0,0],\
-  #     [0,0,0,3,0,0,0,8,0],\
-  #     [0,0,2,0,3,0,0,0,7],\
-  #     [0,0,0,2,1,4,0,0,0],\
-  #     [5,0,0,0,9,0,4,0,0],\
-  #     [0,5,0,0,0,3,0,0,0],\
-  #     [0,0,4,0,0,0,0,0,3],\
-  #     [6,0,0,1,0,0,0,2,0]]
+  board = [[0,8,0,0,0,7,0,0,9],\
+      [1,0,0,0,0,0,6,0,0],\
+      [0,0,0,3,0,0,0,8,0],\
+      [0,0,2,0,3,0,0,0,7],\
+      [0,0,0,2,1,4,0,0,0],\
+      [5,0,0,0,9,0,4,0,0],\
+      [0,5,0,0,0,3,0,0,0],\
+      [0,0,4,0,0,0,0,0,3],\
+      [6,0,0,1,0,0,0,2,0]]
+
+  #HARDEST
+  # board = [[8,0,0,0,0,0,0,0,0],\
+  #         [0,0,3,6,0,0,0,0,0],\
+  #         [0,7,0,0,9,0,2,0,0],\
+  #         [0,5,0,0,0,7,0,0,0],\
+  #         [0,0,0,0,4,5,7,0,0],\
+  #         [0,0,0,1,0,0,0,3,0],\
+  #         [0,0,1,0,0,0,0,6,8],\
+  #         [0,0,8,5,0,0,0,1,0],\
+  #         [0,9,0,0,0,0,4,0,0]]
+
 
 
 
@@ -200,5 +221,4 @@ if __name__ == "__main__":
 
   sudoku.solve()
 
-  print(sudoku.__str__())
   sudoku.show()

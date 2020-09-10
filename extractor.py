@@ -1,25 +1,76 @@
-import cv2 as cv
-import numpy as np
-from imutils import perspective, grab_contours
-from skimage.segmentation import clear_border
+#Global import
 import math
+#Functions
+from cv2 import adaptiveThreshold, approxPolyDP, arcLength
+from cv2 import bitwise_and, bitwise_not
+from cv2 import calcHist, Canny, connectedComponentsWithStats, contourArea, convertScaleAbs, convexHull
+from cv2 import countNonZero, cvtColor
+from cv2 import drawContours
+from cv2 import filter2D, findContours
+from cv2 import GaussianBlur, getStructuringElement
+from cv2 import morphologyEx
+from cv2 import threshold
 
+from imutils import perspective, grab_contours
+
+from numpy import argsort, array
+from numpy import median
+from numpy import min as npmin
+from numpy import ptp
+from numpy import zeros
+
+from time import time
+
+
+from skimage.segmentation import clear_border
+#ATTR/Enum
+from cv2 import ADAPTIVE_THRESH_GAUSSIAN_C
+from cv2 import CHAIN_APPROX_SIMPLE, COLOR_BGR2GRAY
+from cv2 import MORPH_GRADIENT, MORPH_RECT
+from cv2 import RETR_EXTERNAL
+from cv2 import THRESH_BINARY, THRESH_BINARY_INV, THRESH_OTSU
+from numpy import uint8
+
+import logging
 
 class FeatureExtractor:
 
-  Kernel = np.array([[-1,1,-1], [1,1,1], [-1,1,-1]])
-  Canny_Kernel = cv.getStructuringElement(cv.MORPH_RECT,(3,3))
+  Kernel = array([[-1,1,-1], [1,1,1], [-1,1,-1]])
+  Canny_Kernel = getStructuringElement(MORPH_RECT,(3,3))
   def __init__(self):
     pass
 
   def auto_process(self,frame):
-    frame = cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
+    frame = cvtColor(frame,COLOR_BGR2GRAY)
     frame = self.auto_constrast(frame)
-    frame = cv.filter2D(frame,-1,self.Kernel)
+    frame = GaussianBlur(frame, (7, 7), 3)
+    # frame = filter2D(frame,-1,self.Kernel)
     return frame
 
+  def find_puzzle(self,frame):
+    puzzle_cnt = None
+    s_ee = time()
+    thresh = adaptiveThreshold(frame, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 11, 2)
+    thresh = bitwise_not(thresh)
+    logging.info(f" \tself.find_puzzle.thresh\t:\t{time()-s_ee:.3f} seconds")
+    s_ee = time()
+    cnts = findContours(thresh.copy(), RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
+    cnts = grab_contours(cnts)
+    cnts = sorted(cnts, key=contourArea, reverse=True)
+    cnts = cnts[:1000] # Limit to a thousand cnts to make the functions stable
+    logging.info(f" \tself.find_puzzle.cnts\t:\t{time()-s_ee:.3f} seconds")
+
+    for c in cnts:
+      peri = arcLength(c, True)
+      approx = approxPolyDP(c, .02 * peri, True)
+
+      if len(approx) == 4:
+        puzzle_cnt = approx
+        break
+
+    return puzzle_cnt, thresh
   def prepare_warp(self,warp):
-    return self.auto_constrast(cv.cvtColor(warp,cv.COLOR_BGR2GRAY))
+    return self.auto_constrast(cvtColor(warp,COLOR_BGR2GRAY))
 
   def prepare_cells(self,gradient):
     cells = self.extract_cells(gradient)
@@ -30,7 +81,7 @@ class FeatureExtractor:
   def auto_constrast(self,frame):
     histSize = 256
     clipHistPercent = 1
-    hist = cv.calcHist([frame],[0],None,[256],[0,256])
+    hist = calcHist([frame],[0],None,[256],[0,256])
     
     accumulator = []
     app = accumulator.append
@@ -52,16 +103,19 @@ class FeatureExtractor:
         maxGray = maxGray - 1
 
     inputRange = maxGray - minGray
+    if inputRange == 0:
+      return frame
     alpha = 255 / inputRange
     beta = -minGray *alpha
-    adjusted = cv.convertScaleAbs(frame,alpha=alpha,beta=beta)
+    adjusted = convertScaleAbs(frame,alpha=alpha,beta=beta)
     return adjusted
+
 
   def ui(self,cells):
     assert len(cells) == 81, "Invalid number of cells"
     h,w = cells[0].shape
 
-    ui = np.zeros((w*9,h*9),dtype=np.uint8)
+    ui = zeros((w*9,h*9),dtype=uint8)
     for j in range(9):
       for i in range(9):
         ui[j*h:(j+1)*h,i*w:(i+1)*w] = cells[j*9+i]
@@ -69,7 +123,7 @@ class FeatureExtractor:
 
   def select_best_components(self,ui,min_size = 275):
     #find all your connected components (white blobs in your image)
-    nb_components, output, stats, centroids = cv.connectedComponentsWithStats(ui,8)
+    nb_components, output, stats, centroids = connectedComponentsWithStats(ui,8)
     #connectedComponentswithStats yields every seperated component with information on each of them, such as size
     #the following part is just taking out the background which is also considered a component, but most of the time we don't want that.
     sizes = stats[1:, -1]; nb_components = nb_components - 1
@@ -79,7 +133,7 @@ class FeatureExtractor:
     # min_size = 275  
 
     #your answer image
-    img2 = np.zeros((output.shape),np.uint8)
+    img2 = zeros((output.shape),uint8)
     #for every component in the image, you keep it only if it's above min_size
     for i in range(0, nb_components):
         if sizes[i] >= min_size:
@@ -93,7 +147,7 @@ class FeatureExtractor:
     epsilon = .1
     cpt = 0
 
-    approx = cv.approxPolyDP(mask,epsilon,True)
+    approx = approxPolyDP(mask,epsilon,True)
     cpt = 0
     while cpt < 60:
       si = len(approx)
@@ -103,18 +157,18 @@ class FeatureExtractor:
         epsilon *= 1.1
       else:
         break
-      approx = cv.approxPolyDP(mask,epsilon,True)
+      approx = approxPolyDP(mask,epsilon,True)
       cpt += 1
     if len(approx) != 4:
-      return np.array( [(0,0),(0,1),(1,0),(1,1)])
-    return np.array([tuple(a[0]) for a in approx])
+      return array( [(0,0),(0,1),(1,0),(1,1)])
+    return array([tuple(a[0]) for a in approx])
 
   ##TOP LEFT, TOP RIGHT,BOT RIGHT,BOT LEFT  not exactly qr but almost
   def order_points(self,pts):
 
     # sort the points based on their x-coordinates
     #print("POINTS : {}".format(pts))
-    xSorted = pts[np.argsort(pts[:, 0]), :]
+    xSorted = pts[argsort(pts[:, 0]), :]
    
     # grab the left-most and right-most points from the sorted
     # x-roodinate points
@@ -124,7 +178,7 @@ class FeatureExtractor:
     # now, sort the left-most coordinates according to their
     # y-coordinates so we can grab the top-left and bottom-left
     # points, respectively
-    leftMost = leftMost[np.argsort(leftMost[:, 1]), :]
+    leftMost = leftMost[argsort(leftMost[:, 1]), :]
     (tl, bl) = leftMost
    
     # now that we have the top-left coordinate, use it as an
@@ -134,27 +188,27 @@ class FeatureExtractor:
     # our bottom-right point
 
     ##WORKNG BETTER ON TRAPEZOIDAL QUAD
-    rightMost = rightMost[np.argsort(rightMost[:,1]),:]
+    rightMost = rightMost[argsort(rightMost[:,1]),:]
     (tr,br) = rightMost
    
     # return the coordinates in top-left, top-right,
     # bottom-right, and bottom-left order
-    return np.array([tl, tr, br, bl], dtype="float32")
+    return array([tl, tr, br, bl], dtype="float32")
 
   ####Automatic canny edge detection
   def auto_canny(self,image, sigma=0.33):
     # compute the median of the single channel pixel intensities
-    v = np.median(image)
+    v = median(image)
     # apply automatic Canny edge detection using the computed median
     lower = int(max(0, (1.0 - sigma) * v))
     upper = int(min(255, (1.0 + sigma) * v))
-    edged = cv.Canny(image, lower, upper)
+    edged = Canny(image, lower, upper)
  
     # return the edged image
     return edged
 
   def canny_process(self,canny):
-    canny = cv.morphologyEx(canny,cv.MORPH_GRADIENT,self.Canny_Kernel,iterations=1)
+    canny = morphologyEx(canny,MORPH_GRADIENT,self.Canny_Kernel,iterations=1)
     return canny
 
   
@@ -164,11 +218,11 @@ class FeatureExtractor:
     best_corners = None
 
     for i,cnt in enumerate(cnts):
-      hull = cv.convexHull(cnt)
+      hull = convexHull(cnt)
       corners = self.corner_points(hull)
 
-      air = cv.contourArea(corners)
-      perimeter = cv.arcLength(corners,True)
+      air = contourArea(corners)
+      perimeter = arcLength(corners,True)
 
       #Square property u know...
       estimate_seg_size = perimeter/4 
@@ -214,27 +268,26 @@ class FeatureExtractor:
     return ang + 360 if ang < 0 else ang
 
   def clear_cell(self,cell):
-    cnts = cv.findContours(cell, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    cnts = findContours(cell, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE)
     cnts = grab_contours(cnts)
     # if no contours were found than this is an empty cell
     if len(cnts) == 0:
-      return (np.zeros(cell.shape, dtype="uint8"),False)
+      return (zeros(cell.shape, dtype="uint8"),False)
 
-    c = max(cnts, key=cv.contourArea)
-    mask = np.zeros(cell.shape, dtype="uint8")
-    cv.drawContours(mask, [c], -1, 255, -1)
+    c = max(cnts, key=contourArea)
+    mask = zeros(cell.shape, dtype="uint8")
+    drawContours(mask, [c], -1, 255, -1)
     (h,w) = cell.shape
 
-    pct_filled = cv.countNonZero(mask) / float(w*h)
+    pct_filled = countNonZero(mask) / float(w*h)
     if pct_filled < .03:
-      return (np.zeros(cell.shape, dtype="uint8"),False)
+      return (zeros(cell.shape, dtype="uint8"),False)
 
-    cell = cv.bitwise_and(cell,cell,mask=mask) 
+    cell = bitwise_and(cell,cell,mask=mask) 
     return (cell,True)
 
   def extract_cells(self,warp):
     h,w = warp.shape
-    print(h,w)
     assert len(warp)%9 == 0, "extract_cells(): H%9 != 0"
     assert len(warp[0])%9 == 0, "extract_cells(): W%9 != 0"
     assert len(warp) == len(warp[0]), "extract_cells(): W != H"
@@ -259,16 +312,24 @@ class FeatureExtractor:
     return cleared_cells,digits
 
   def threshold_cells(self,cells):
-    return [clear_border(cv.threshold(c,0,255,cv.THRESH_BINARY_INV | cv.THRESH_OTSU)[1]) for c in cells]
+    return [clear_border(threshold(c,0,255,THRESH_BINARY_INV | THRESH_OTSU)[1]) for c in cells]
 
   def grab_best_square(self,cnts):
     airs,sim_d,sim_c,sim_a = [], [], [], []
     squares_similarity = []
-    hulls = [cv.convexHull(c) for c in cnts]
+    if len(cnts) > 1000:
+      cnts = sorted(cnts,key=contourArea,reverse=True)[:1000]
+
+    s_ee = time()
+    hulls = [convexHull(c) for c in cnts]
+    logging.info(f" \tself.grab_best_square.hulls\t:\t{time()-s_ee:.3f} seconds")
+
+    s_ee = time()
     corners = [self.order_points(self.corner_points(h)) for h in hulls]
+    logging.info(f" \tself.grab_best_square.corners\t:\t{time()-s_ee:.3f} seconds")
 
     for i,quad in enumerate(corners):
-      airs.append(cv.contourArea(quad))
+      airs.append(contourArea(quad))
       dist_diff,dist_center,dist_angle = self.cmp_to_square(quad)
 
       sim_d.append(dist_diff)
@@ -276,27 +337,25 @@ class FeatureExtractor:
       sim_a.append(dist_angle)
       squares_similarity.append(dist_diff+dist_center+dist_angle) #Maybe not the best formula to sum them up
 
-    airs = (airs-np.min(airs)) / np.ptp(airs)
-    squares_similarity = (squares_similarity-np.min(squares_similarity) )/ np.ptp(squares_similarity)
-    sim_d = (sim_d-np.min(sim_d) )/ np.ptp(sim_d)
-    sim_c = (sim_c-np.min(sim_c) )/ np.ptp(sim_c)
-    sim_a = (sim_a-np.min(sim_a) )/ np.ptp(sim_a)
+    airs = (airs-npmin(airs)) / ptp(airs)
+    squares_similarity = (squares_similarity-npmin(squares_similarity) )/ ptp(squares_similarity)
+    sim_d = (sim_d-npmin(sim_d) )/ ptp(sim_d)
+    sim_c = (sim_c-npmin(sim_c) )/ ptp(sim_c)
+    sim_a = (sim_a-npmin(sim_a) )/ ptp(sim_a)
 
     scores = []
-    # for air,d,c,a in zip(airs,sim_d,sim_c,sim_a):
     for air,sq in zip(airs,squares_similarity):
-      # scores.append(air*(1-d)*(1-c)*(1-a))
       scores.append(air*(1-sq))
 
     best = [(int(c[0]),int(c[1])) for c in corners[scores.index(max(scores))]]
-    return np.array(best)
+    return array(best)
 
   def is_black_bg(self,frame):
-    _,th = cv.threshold(frame,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+    _,th = threshold(frame,0,255,THRESH_BINARY+THRESH_OTSU)
     h,w = th.shape
     total_px = h*w
-    return cv.countNonZero(th) > total_px/2 
+    return countNonZero(th) > total_px/2 
 
   def unwrap(self,frame,corners):
-    warp = perspective.four_point_transform(frame,corners)
+    warp = perspective.four_point_transform(frame,corners.reshape(4,2))
     return warp
