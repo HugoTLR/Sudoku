@@ -15,6 +15,10 @@ import glob
 
 from cv2 import bitwise_not
 import logging
+
+from SudokuDLX import *
+
+
 if __name__ == "__main__":
 
   logging_fn = f"./Videos/{len(glob.glob('./Videos/*.*'))}.log"
@@ -26,8 +30,8 @@ if __name__ == "__main__":
   R_H,R_W = 288,288
   CELL_SIZE = 28
 
-  model_path = "./Model/Output/optimized.h5"
-
+  # model_path = "./Model/Output/optimized.h5"
+  model_path = "./Model/Output/tmp/cp-38-0.0509.h5"
   sudoku_model = load_model(model_path)
 
   pat = cv.cvtColor(cv.imread("./pattern2.jpg"),cv.COLOR_BGR2GRAY)
@@ -42,6 +46,8 @@ if __name__ == "__main__":
   frame_cpt = 0 
 
 
+  FOUND = False
+
 
   cap = cv.VideoCapture(0)
   while True:
@@ -52,14 +58,14 @@ if __name__ == "__main__":
       break
 
     orig = frame
-    gray = cv.cvtColor(orig,cv.COLOR_BGR2GRAY)
+    gray = ex.auto_process(orig,blur=False)
 
     warp = None
 
 
     
     s_e = time()
-    frame = ex.auto_process(frame)
+    frame = ex.auto_process(orig)
     logging.info(f" ex.auto_process\t:\t{time()-s_e:.3f} seconds")
 
 
@@ -86,24 +92,24 @@ if __name__ == "__main__":
 
       #If it looks like a sudoku
       if score_ssim > SSIM_TRESHOLD:
-        logging.warning(f"----- WE ARE IN -----")
+        # logging.warning(f"----- WE ARE IN -----")
         cv.drawContours(orig,[puzzle],0,(255,0,0),3)
-
+        if FOUND: continue
         #Resize
         warp = cv.resize(warp,(R_W,R_H))
 
 
-        s_e = time()
+        # s_e = time()
         cells = ex.extract_cells(warp)
-        logging.info(f" ex.extract_cells\t:\t{time()-s_e:.3f} seconds")
+        # logging.info(f" ex.extract_cells\t:\t{time()-s_e:.3f} seconds")
 
-        s_e = time()
+        # s_e = time()
         cells = ex.threshold_cells(cells)
-        logging.info(f" ex.threshold_cells\t:\t{time()-s_e:.3f} seconds")
+        # logging.info(f" ex.threshold_cells\t:\t{time()-s_e:.3f} seconds")
 
-        s_e = time()
+        # s_e = time()
         cells,digits = ex.clear_cells(cells)
-        logging.info(f" ex.clear_cells\t:\t{time()-s_e:.3f} seconds")
+        # logging.info(f" ex.clear_cells\t:\t{time()-s_e:.3f} seconds")
 
         ui = ex.ui(cells)
 
@@ -122,41 +128,42 @@ if __name__ == "__main__":
 
             board[i//9][i%9] = prediction
         
+        # sudoku = Sudoku()
+        # sudoku.initialize_solved_board(board)
+        # sudoku.solve()
+        # if sudoku.unsolvable:
+        #   print("unsolvable sudok")
+        # else:
+        #   print("solved")
+        #   sudoku.show()
+        #Debugging purpose lul
         sudoku = Sudoku()
         sudoku.initialize_solved_board(board)
-        sudoku.solve()
-        if sudoku.unsolvable:
-          print("unsolvable sudok")
-        else:
-          print("solved")
-          sudoku.show()
-        cv.imshow("warp",np.hstack([warp,ui]))
-        cv.waitKey()
+        sudoku = SudokuDLX.SudokuDLX()
+        solved = sudoku.solve(board,True)
+        if solved[0]:
+          orig_warp = ex.unwrap(orig,puzzle)
+          orig_warp = cv.resize(orig_warp,(R_W,R_H))
+          drawed_warp = di.draw(orig_warp,ex.extract_cells(orig_warp),solved[1])
+          FOUND = True
+          cv.imshow("draw_warp",drawed_warp)
 
-        """
-        sudoku = Sudoku()
-        sudoku.initialize_solved_board(board)
-        sudoku.solve()
-        if sudoku.unsolvable:
-          print("unsolvable sudok")
-        else:
-          print("solved")
-          sudoku.show()
-        cv.waitKey()
-        """
 
-      # cv.drawContours(orig,[corners],0,(255,0,0),3)
+
+          #REWARP HERE
+          
+          cv.waitKey()
+
+
+        # cv.imshow("warp",np.hstack([warp,ui]))
+
 
 
     if di.show([orig]):
       break
     
     loop_time = time()-s_loop
-
-    # logs['frames'][frame_cpt]['time'] = loop_time
-    # logs['frames'][frame_cpt]['fps'] = 1/loop_time
-    # frame_cpt += 1
-    print(f"Looped in {loop_time:.3f} secs")
+    # print(f"Looped in {loop_time:.3f} secs")
 
 
 

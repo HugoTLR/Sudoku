@@ -1,5 +1,5 @@
-from AbstractSudoku import AbstractSudokuSolver
-from type_checking import Answer, Grid
+from .AbstractSudoku import AbstractSudokuSolver
+from .type_checking import Answer, Grid
 
 class SudokuHandler:
   def __init__(self,board_size : int):

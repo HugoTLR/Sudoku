@@ -1,5 +1,5 @@
 from math import sqrt
-from type_checking import Grid
+from .type_checking import Grid
 
 class AbstractSudokuSolver:
   S = 9
@@ -18,6 +18,9 @@ class AbstractSudokuSolver:
     AbstractSudokuSolver.S = len(sudoku)
     AbstractSudokuSolver.side = int( sqrt(AbstractSudokuSolver.S) ) 
     result = self.run(sudoku, single)
+    if result is None:
+      print("Error: Invalid detected board game")
+      return False, None
     return True, result
 
   def is_valid(self,grid : Grid) -> bool:

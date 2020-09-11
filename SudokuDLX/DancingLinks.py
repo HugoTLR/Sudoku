@@ -1,6 +1,6 @@
-from SolutionHandler import DefaultHandler, SudokuHandler
+from .SolutionHandler import DefaultHandler, SudokuHandler
 from sys import maxsize
-from type_checking import Column, DNode, Grid, Parent
+from .type_checking import Column, DNode, Grid, Parent
 
 
 class DancingLinks:

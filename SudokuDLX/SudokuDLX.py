@@ -1,7 +1,7 @@
-from AbstractSudoku import AbstractSudokuSolver
-from DancingLinks import DancingLinks
-from SolutionHandler import SudokuHandler
-from type_checking import Grid
+from .AbstractSudoku import AbstractSudokuSolver
+from .DancingLinks import DancingLinks
+from .SolutionHandler import SudokuHandler
+from .type_checking import Grid
 
 class SudokuDLX(AbstractSudokuSolver):
   def __init__(self):
@@ -66,4 +66,8 @@ class SudokuDLX(AbstractSudokuSolver):
     cover = self.build_sudoku_exact_cover(sudoku)
     dlx = DancingLinks(cover, SudokuHandler(SudokuDLX.S))
     dlx.run(single)
-    return dlx.handler.results[-1]
+    if dlx.handler.results:
+      return dlx.handler.results[-1]
+    else:
+      print("Lul")
+      return None

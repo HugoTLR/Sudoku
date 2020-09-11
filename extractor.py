@@ -40,11 +40,11 @@ class FeatureExtractor:
   def __init__(self):
     pass
 
-  def auto_process(self,frame):
+  def auto_process(self,frame,blur = True):
     frame = cvtColor(frame,COLOR_BGR2GRAY)
     frame = self.auto_constrast(frame)
-    frame = GaussianBlur(frame, (7, 7), 3)
-    # frame = filter2D(frame,-1,self.Kernel)
+    if blur:
+      frame = GaussianBlur(frame, (7, 7), 3)
     return frame
 
   def find_puzzle(self,frame):
@@ -287,7 +287,6 @@ class FeatureExtractor:
     return (cell,True)
 
   def extract_cells(self,warp):
-    h,w = warp.shape
     assert len(warp)%9 == 0, "extract_cells(): H%9 != 0"
     assert len(warp[0])%9 == 0, "extract_cells(): W%9 != 0"
     assert len(warp) == len(warp[0]), "extract_cells(): W != H"
