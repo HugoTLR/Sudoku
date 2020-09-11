@@ -69,5 +69,4 @@ class SudokuDLX(AbstractSudokuSolver):
     if dlx.handler.results:
       return dlx.handler.results[-1]
     else:
-      print("Lul")
       return None
