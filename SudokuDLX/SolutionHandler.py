@@ -1,17 +1,16 @@
-from AbstractSudoku import *
-from DancingLinks import *
-
+from AbstractSudoku import AbstractSudokuSolver
+from type_checking import Answer, Grid
 
 
 class SudokuHandler:
-  def __init__(self,board_size):
+  def __init__(self,board_size : int):
     self.size = board_size
 
-  def handle_solution(self,answer):
+  def handle_solution(self,answer : Answer):
     result = self.parse_board(answer)
     AbstractSudokuSolver.print_solution(result)
 
-  def parse_board(self,answer):
+  def parse_board(self,answer : Answer) -> Grid:
     result = [[0 for _ in range(self.size)] for _ in range(self.size)]
 
     for node in answer:
@@ -38,7 +37,7 @@ class DefaultHandler:
   def __init__(self):
     pass
 
-  def handle_solution(self,answer):
+  def handle_solution(self,answer : Answer):
     for node in answer:
       ret = f"{node.column.name} "
       tmp = node.right

@@ -1,4 +1,5 @@
 from math import sqrt
+from type_checking import Grid
 
 class AbstractSudokuSolver:
   S = 9
@@ -6,10 +7,10 @@ class AbstractSudokuSolver:
   def __init__(self):
     pass
 
-  def run(self,sudoku):
+  def run(self,sudoku : Grid) -> bool:
     raise NotImplementedError("We should never call the abstract class")
 
-  def solve(self,sudoku):
+  def solve(self,sudoku : Grid) -> bool:
     if not self.is_valid(sudoku):
       print("Error: Invalid board game")
       return False
@@ -19,37 +20,7 @@ class AbstractSudokuSolver:
     self.run(sudoku)
     return True
 
-
-  def print_solution(solution):
-    N = len(solution)
-    res = ""
-    for j,row in enumerate(solution):
-      if j%3 == 0:
-        res = res = res + "+-------+-------+-------+\n"
-
-      for i, col in enumerate(row):
-        if col != 0:tmp = f" {col}"
-        else:tmp = f"  " 
-
-        if i%3 == 0:
-          tmp = "|" + tmp
-        elif i%3 == 2:
-          tmp = tmp + " "
-        res = res + tmp
-      res = res + "|\n"
-    res = res + "+-------+-------+-------+\n"
-    print(res)
-
-  # def print_solution(solution):
-  #   N = len(solution)
-  #   for j in range(N):
-  #     ret = ""
-  #     for i in range(N):
-  #       ret = ret + f"{solution[j][i]} "
-  #     print(ret)
-  #   print()
-
-  def is_valid(self,grid):
+  def is_valid(self,grid : Grid) -> bool:
     N = len(grid)
 
     if N != 9:
@@ -99,26 +70,23 @@ class AbstractSudokuSolver:
         b = [False]*(N+1)
 
     return True
+    
+  def print_solution(solution : Grid) -> bool:
+      N = len(solution)
+      res = ""
+      for j,row in enumerate(solution):
+        if j%3 == 0:
+          res = res = res + "+-------+-------+-------+\n"
 
-# #INVALID BOARD
-# board = [[0,9,5,8,0,0,0,0,0],\
-#         [8,0,0,3,0,0,6,0,0],\
-#         [7,0,0,0,2,0,0,3,0],\
-#         [6,8,0,0,0,0,0,0,0],\
-#         [0,0,2,0,0,0,5,0,0],\
-#         [0,0,0,0,0,0,0,1,6],\
-#         [0,4,0,0,3,0,0,0,7],\
-#         [0,0,6,0,0,4,4,0,5],\
-#         [0,0,0,0,0,9,2,9,0]]
+        for i, col in enumerate(row):
+          if col != 0:tmp = f" {col}"
+          else:tmp = f"  " 
 
-#VALID BOARD
-# board = [[0,8,0,0,0,7,0,0,9],\
-#     [1,0,0,0,0,0,6,0,0],\
-#     [0,0,0,3,0,0,0,8,0],\
-#     [0,0,2,0,3,0,0,0,7],\
-#     [0,0,0,2,1,4,0,0,0],\
-#     [5,0,0,0,9,0,4,0,0],\
-#     [0,5,0,0,0,3,0,0,0],\
-#     [0,0,4,0,0,0,0,0,3],\
-#     [6,0,0,1,0,0,0,2,0]]
-# print(AbstractSudokuSolver.is_valid(board))
+          if i%3 == 0:
+            tmp = "|" + tmp
+          elif i%3 == 2:
+            tmp = tmp + " "
+          res = res + tmp
+        res = res + "|\n"
+      res = res + "+-------+-------+-------+\n"
+      print(res)

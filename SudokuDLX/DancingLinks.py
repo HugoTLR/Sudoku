@@ -1,93 +1,11 @@
 import sys
-from SolutionHandler import *
-
-class DancingNode:
-  def __init__(self,c=None):
-    self.left = self
-    self.right = self
-    self.up = self
-    self.down = self
-    self.column = c
-
- 
-
-
-  def hook_down(self, n1):
-    assert self.column == n1.column, "WTF ?"
-    n1.down = self.down
-    n1.down.up = n1
-    n1.up = self
-    self.down = n1
-    return n1
-
-  def hook_right(self, n1):
-    n1.right = self.right
-    n1.right.left = n1
-    n1.left = self
-    self.right = n1
-    return n1
-
-  def unlink_left_right(self,parent):
-    self.left.right = self.right
-    self.right.left = self.left
-    #Update ++
-    parent.updates += 1
-
-  def link_left_right(self,parent):
-    self.left.right = self.right.left = self
-    #Update ++
-    parent.updates += 1
-
-  def unlink_up_down(self,parent):
-    self.up.down = self.down
-    self.down.up = self.up
-    #Update ++
-    parent.updates += 1
-
-  def link_up_down(self,parent):
-    self.up.down = self.down.up = self
-    #Update ++
-    parent.updates += 1
-
-
-class ColumnNode(DancingNode):
-  def __init__(self,n):
-    super().__init__(self)
-    self.size = 0
-    self.name = n
-
-  
-  def cover(self,parent):
-    self.unlink_left_right(parent)
-
-    i = self.down
-    while i != self:
-      j = i.right
-      while j != i:
-        j.unlink_up_down(parent)
-        j.column.size -= 1
-        j = j.right
-      i = i.down
-    parent.header.size -= 1
-    #Header.size --
-
-  def uncover(self,parent):
-    i = self.up
-    while i != self:
-      j = i.left
-      while j != i:
-        j.column.size += 1
-        j.link_up_down(parent)
-        j = j.left
-      i = i.up
-    self.link_left_right(parent)
-    parent.header.size += 1
-    #Header.size ++
+from SolutionHandler import DefaultHandler, SudokuHandler
+from type_checking import Column, DNode, Grid, Parent
 
 
 class DancingLinks:
   verbose = True
-  def __init__(self,grid,handler=DefaultHandler()):
+  def __init__(self,grid : Grid, handler=DefaultHandler()):
     self.header = self.build_DLX_board(grid)
     self.solutions = 0
     self.updates = 0
@@ -95,7 +13,7 @@ class DancingLinks:
     self.answer = []
 
   #Main alg
-  def search(self, k):
+  def search(self, k : int):
     # print(f"{type(self.header.right)=} {type(self.header)=}")
     if self.header.right == self.header:
       print(f"-----------------------------------------\nSolution # {self.solutions}\n") if DancingLinks.verbose else None
@@ -126,7 +44,7 @@ class DancingLinks:
         r = r.down
       c.uncover(self)
 
-  def select_column_node_heuristic(self):
+  def select_column_node_heuristic(self) -> Column:
     mini = sys.maxsize
     ret = None
     c = self.header.right
@@ -153,7 +71,7 @@ class DancingLinks:
         d = d.down
       tmp = tmp.right
 
-  def build_DLX_board(self, grid):
+  def build_DLX_board(self, grid : Grid) -> Column:
     COLS = len(grid[0])
     ROWS = len(grid)
 
@@ -185,3 +103,78 @@ class DancingLinks:
     self.updates = 0
     self.answer = []
     self.search(0)
+
+
+class DancingNode:
+  def __init__(self,c : Column = None ):
+    self.left = self
+    self.right = self
+    self.up = self
+    self.down = self
+    self.column = c
+
+  def hook_down(self, n1 : DNode) -> DNode:
+    assert self.column == n1.column, "WTF ?"
+    n1.down = self.down
+    n1.down.up = n1
+    n1.up = self
+    self.down = n1
+    return n1
+
+  def hook_right(self, n1 : DNode) -> DNode:
+    n1.right = self.right
+    n1.right.left = n1
+    n1.left = self
+    self.right = n1
+    return n1
+
+  def unlink_left_right(self,parent : Parent):
+    self.left.right = self.right
+    self.right.left = self.left
+    parent.updates += 1
+
+  def link_left_right(self,parent : Parent):
+    self.left.right = self.right.left = self
+    parent.updates += 1
+
+  def unlink_up_down(self,parent : Parent):
+    self.up.down = self.down
+    self.down.up = self.up
+    parent.updates += 1
+
+  def link_up_down(self,parent : Parent):
+    self.up.down = self.down.up = self
+    parent.updates += 1
+
+
+class ColumnNode(DancingNode):
+  def __init__(self,n : str):
+    super().__init__(self)
+    self.size = 0
+    self.name = n
+
+  
+  def cover(self,parent : Parent):
+    self.unlink_left_right(parent)
+
+    i = self.down
+    while i != self:
+      j = i.right
+      while j != i:
+        j.unlink_up_down(parent)
+        j.column.size -= 1
+        j = j.right
+      i = i.down
+    parent.header.size -= 1
+
+  def uncover(self,parent : Parent):
+    i = self.up
+    while i != self:
+      j = i.left
+      while j != i:
+        j.column.size += 1
+        j.link_up_down(parent)
+        j = j.left
+      i = i.up
+    self.link_left_right(parent)
+    parent.header.size += 1

@@ -1,13 +1,12 @@
-from AbstractSudoku import *
+from AbstractSudoku import AbstractSudokuSolver
 from DancingLinks import *
-from SolutionHandler import *
+from type_checking import *
 
 class SudokuDLX(AbstractSudokuSolver):
   def __init__(self):
-    # super().__init__()
     pass
 
-  def build_sudoku_exact_cover(self,sudoku):
+  def build_sudoku_exact_cover(self,sudoku : Grid) -> Grid:
     R = self.sudoku_exact_cover()
     for j in range(1, SudokuDLX.S + 1, 1):
       for i in range(1, SudokuDLX.S + 1, 1):
@@ -18,7 +17,7 @@ class SudokuDLX(AbstractSudokuSolver):
               R[self.get_idx(j, i, num)] = [0 for _ in range(len(R[self.get_idx(j, i, num)]))]
     return R
 
-  def sudoku_exact_cover(self):
+  def sudoku_exact_cover(self) -> Grid:
     """Return the base exact cover grid for an empty puzzle
     e.g, only base constraint are 1
     """
@@ -60,11 +59,10 @@ class SudokuDLX(AbstractSudokuSolver):
 
     return R
 
-  def get_idx(self,row,col,num):
+  def get_idx(self, row : int, col : int, num: int) -> int:
     return (row - 1) * (SudokuDLX.S**2) + (col - 1) * SudokuDLX.S + (num - 1)
 
-  def run(self,sudoku):
+  def run(self,sudoku : Grid):
     cover = self.build_sudoku_exact_cover(sudoku)
-    print(len(cover),len(cover[0]))
     dlx = DancingLinks(cover, SudokuHandler(SudokuDLX.S))
     dlx.run()
