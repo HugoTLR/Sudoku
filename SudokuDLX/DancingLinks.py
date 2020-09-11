@@ -1,5 +1,5 @@
-import sys
 from SolutionHandler import DefaultHandler, SudokuHandler
+from sys import maxsize
 from type_checking import Column, DNode, Grid, Parent
 
 
@@ -13,8 +13,7 @@ class DancingLinks:
     self.answer = []
 
   #Main alg
-  def search(self, k : int):
-    # print(f"{type(self.header.right)=} {type(self.header)=}")
+  def search(self, k : int, single : bool = False):
     if self.header.right == self.header:
       print(f"-----------------------------------------\nSolution # {self.solutions}\n") if DancingLinks.verbose else None
       self.handler.handle_solution(self.answer)
@@ -31,8 +30,9 @@ class DancingLinks:
         while j != r:
           j.column.cover(self)
           j = j.right
-
-        self.search(k+1)
+        if single and self.solutions > 0:
+          break
+        self.search(k+1, single)
         r = self.answer.pop(-1)
         c = r.column
 
@@ -45,7 +45,7 @@ class DancingLinks:
       c.uncover(self)
 
   def select_column_node_heuristic(self) -> Column:
-    mini = sys.maxsize
+    mini = maxsize
     ret = None
     c = self.header.right
     while c != self.header:
@@ -98,11 +98,13 @@ class DancingLinks:
     header.size = COLS
     return header
 
-  def run(self):
+  def run(self,single : bool = False):
     self.solutions = 0
     self.updates = 0
     self.answer = []
-    self.search(0)
+    self.search(0, single)
+    # print(f"{self.solutions=} {self.updates=}")
+    # print(f"{self.handler.results[0]=}")
 
 
 class DancingNode:

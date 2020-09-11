@@ -7,18 +7,18 @@ class AbstractSudokuSolver:
   def __init__(self):
     pass
 
-  def run(self,sudoku : Grid) -> bool:
+  def run(self,sudoku : Grid, single : bool = False) -> bool:
     raise NotImplementedError("We should never call the abstract class")
 
-  def solve(self,sudoku : Grid) -> bool:
+  def solve(self,sudoku : Grid, single : bool = False) -> tuple:
     if not self.is_valid(sudoku):
       print("Error: Invalid board game")
-      return False
+      return False, None
 
     AbstractSudokuSolver.S = len(sudoku)
     AbstractSudokuSolver.side = int( sqrt(AbstractSudokuSolver.S) ) 
-    self.run(sudoku)
-    return True
+    result = self.run(sudoku, single)
+    return True, result
 
   def is_valid(self,grid : Grid) -> bool:
     N = len(grid)
@@ -70,7 +70,7 @@ class AbstractSudokuSolver:
         b = [False]*(N+1)
 
     return True
-    
+
   def print_solution(solution : Grid) -> bool:
       N = len(solution)
       res = ""

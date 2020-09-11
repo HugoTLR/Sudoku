@@ -1,14 +1,16 @@
 from AbstractSudoku import AbstractSudokuSolver
 from type_checking import Answer, Grid
 
-
 class SudokuHandler:
   def __init__(self,board_size : int):
     self.size = board_size
+    self.results = []
 
   def handle_solution(self,answer : Answer):
     result = self.parse_board(answer)
     AbstractSudokuSolver.print_solution(result)
+    self.results.append(result)
+    
 
   def parse_board(self,answer : Answer) -> Grid:
     result = [[0 for _ in range(self.size)] for _ in range(self.size)]
