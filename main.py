@@ -6,7 +6,7 @@ import glob
 from collections import defaultdict
 from time import time
 #3rd party
-from imutils import grab_contours
+# from imutils import grab_contours
 from skimage.metrics import structural_similarity as ssim
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.models import load_model
