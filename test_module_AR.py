@@ -6,7 +6,7 @@ from skimage.metrics import structural_similarity as ssim
 from Utils.display import Display
 from Utils.extractor import FeatureExtractor
 
-from .KPExtractor import KPExtractor
+from AR.KPExtractor import KPExtractor
 
 #Const
 SSIM_TRESHOLD = .6

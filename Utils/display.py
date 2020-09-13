@@ -63,11 +63,8 @@ class Display:
 
 
   def render_warp(self,frame,ui,matrix,ui_pts,src_pts,dst_pts):
-    print("3")
     scale_matrix = np.eye(3)*3
     src_pts = np.array([p[0] for p in src_pts])
-
-
 
 
     T = cv.getPerspectiveTransform(ui_pts,dst_pts)
