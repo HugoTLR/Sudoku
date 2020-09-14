@@ -13,10 +13,6 @@ class Display:
   def show(self,**kwargs):
     for i,stack in enumerate(kwargs.values()):
       cv.imshow(f"Stack {i}",np.hstack(stack))
-    # for i,frame in enumerate(frames):
-    #   if frame is None:
-    #     continue
-    #   cv.imshow(f"Frame {i}",frame)
     return cv.waitKey(self.delay) == ord('q') & 0xFF
 
   #Draw Sudoku UI
@@ -54,50 +50,52 @@ class Display:
 
   def draw_homography(self,frame,warp,H,pts):
     h,w,c = warp.shape
-
     dst = cv.perspectiveTransform(pts, H)  
-
     frame = cv.polylines(frame, [np.int32(dst)], True, (0,255,0), 10, cv.LINE_AA) 
-
     return frame
 
 
   def render_warp(self,frame,ui,matrix,ui_pts,src_pts,dst_pts):
-    scale_matrix = np.eye(3)*3
-    src_pts = np.array([p[0] for p in src_pts])
-
+    # scale_matrix = np.eye(3)*3
+    # src_pts = np.array([p[0] for p in src_pts])
 
     T = cv.getPerspectiveTransform(ui_pts,dst_pts)
 
 
-    src_pts = np.array([[p[0], p[1]] for p in src_pts])
+    # src_pts = np.array([[p[0], p[1]] for p in src_pts])
     
-    elevated_pts = np.array([[p[0], p[1], 100] for p in src_pts])
+    # elevated_pts = np.array([[p[0], p[1], 100] for p in src_pts])
 
 
 
-    dst = cv.perspectiveTransform(elevated_pts.reshape(-1, 1, 3), matrix)
-    imgpts = np.float32(dst)
+    # dst = cv.perspectiveTransform(elevated_pts.reshape(-1, 1, 3), matrix)
+    # imgpts = np.int32(dst)
 
+    # elevated = cv.polylines(frame, [imgpts], True, (255,255,255), 3, cv.LINE_AA) 
  
     # cv.imshow("ui",ui)
     remap = cv.warpPerspective(ui,T,(frame.shape[1],frame.shape[0]))
     remap = cv.threshold(remap,125,255,cv.THRESH_BINARY)[1]
+
     mask = remap.copy()
+    not_mask = cv.bitwise_not(mask)
+
     remap = cv.cvtColor(remap,cv.COLOR_GRAY2BGR)
     blank = 255 * np.ones((frame.shape[0],frame.shape[1],3),dtype=np.uint8)
+
 
     
     blue = np.zeros(frame.shape, frame.dtype)
     blue[:,:] = (255, 0, 0)
+    blue_mask = blue & remap
 
-    r = blue & remap
-    not_mask = cv.bitwise_not(mask)
-
-    ui_part = cv.bitwise_and(r,r,mask=mask)
+    ui_part = cv.bitwise_and(blue_mask,blue_mask,mask=mask)
     fr_part = cv.bitwise_and(frame,frame,mask=not_mask)
     output = cv.bitwise_or(ui_part,fr_part)
 
-    cv.addWeighted(output, .6, frame, .4, 0, frame)
+    alpha = .4
+    cv.addWeighted(output, alpha, frame, 1-alpha, 0, frame)
+
+    # cv.imshow("elevate",elevated)
 
     return frame
