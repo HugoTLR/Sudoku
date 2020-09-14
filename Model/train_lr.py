@@ -17,8 +17,8 @@ import numpy as np
 import argparse
 import cv2 as cv
 import sys
-
-
+import os
+import sys
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -27,6 +27,7 @@ ap.add_argument("-f", "--lr-find", type=int, default=0,
 # ap.add_argument("-m", "--model", required=True,
 #   help="path to output model after training")
 args = vars(ap.parse_args())
+
 
 
 print("Loading & Processing Data ...")
@@ -74,6 +75,7 @@ if args["lr_find"] > 0:
   # plot the loss for the various learning rates and save the
   # resulting plot to disk
   lrf.plot_loss()
+
   plt.savefig(config.LRFIND_PLOT_PATH)
   # gracefully exit the script so we can adjust our learning rates
   # in the config and then train the network for our full set of
@@ -82,15 +84,24 @@ if args["lr_find"] > 0:
   print("[INFO] examine plot and adjust learning rates before training")
   sys.exit(0)
 
+#Make the folder for training
+#Create specific folder for this training
+if not os.path.exists(config.TRAINING_PATH):
+  os.makedirs(config.TRAINING_PATH)
+  os.makedirs(config.PLOT_PATH)
+  os.makedirs(config.TMP_PATH)
+else:
+  sys.exit(f"{config.TRAINING_PATH} already exists, exiting")
+
 stepSize = config.STEP_SIZE * (train_X.shape[0] // config.BATCH_SIZE)
 clr = CyclicLR(
   mode=config.CLR_METHOD,
   base_lr=config.MIN_LR,
   max_lr=config.MAX_LR,
   step_size=stepSize)
-cp_filepath = "./output/tmp/cp-{epoch:02d}-{val_loss:.4f}.h5"
+
 model_checkpoint_callback = ModelCheckpoint(
-    filepath=cp_filepath,
+    filepath=config.CP_PATH,
     monitor='val_loss',
     save_weights_only=False,
     save_best_only=False,
@@ -124,6 +135,7 @@ plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
 plt.legend(loc="lower left")
 plt.savefig(config.TRAINING_PLOT_PATH)
+
 # plot the learning rate history
 N = np.arange(0, len(clr.history["lr"]))
 plt.figure()
@@ -132,7 +144,3 @@ plt.title("Cyclical Learning Rate (CLR)")
 plt.xlabel("Training Iterations")
 plt.ylabel("Learning Rate")
 plt.savefig(config.CLR_PLOT_PATH)
-
-
-# print("[INFO] Saving Model ...")
-# model.save(args["model"],save_format="h5")
