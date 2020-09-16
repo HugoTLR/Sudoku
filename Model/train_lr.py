@@ -10,6 +10,8 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.metrics import classification_report
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.optimizers import SGD,Adam
+from tensorflow.keras.preprocessing.image import img_to_array
+from sklearn.model_selection import train_test_split
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt
@@ -19,12 +21,15 @@ import cv2 as cv
 import sys
 import os
 import sys
+import glob
 import inspect
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-f", "--lr-find", type=int, default=0,
   help="whether or not to find optimal learning rate")
+ap.add_argument("-r", "--real", type=int, default=0,
+  help="0 test on mnist, 1 test on private folder")
 # ap.add_argument("-m", "--model", required=True,
 #   help="path to output model after training")
 args = vars(ap.parse_args())
@@ -32,17 +37,49 @@ args = vars(ap.parse_args())
 
 
 print("Loading & Processing Data ...")
+if args['real'] == 0:
 
-((train_X,train_Y),(test_X,test_Y)) = mnist.load_data()
-# train_X = train_X[:]
-# print(len(train_X))
+  ((train_X,train_Y),(test_X,test_Y)) = mnist.load_data()
 
-train_X = train_X.reshape((train_X.shape[0],28,28,1))
-test_X = test_X.reshape((test_X.shape[0],28,28,1))
+  train_X = train_X.reshape((train_X.shape[0],28,28,1))
+  test_X = test_X.reshape((test_X.shape[0],28,28,1))
 
-#Rescale
-train_X = train_X.astype("float32")/255.0
-test_X = test_X.astype("float32")/255.0
+  #Rescale
+  train_X = train_X.astype("float32")/255.0
+  test_X = test_X.astype("float32")/255.0
+
+
+else:
+
+  collect_folder = "./Data/test/"
+
+  nb_files = len(glob.glob(f"{collect_folder}*.jpg"))
+  images = [[cv.imread(f,cv.IMREAD_GRAYSCALE) for f in glob.glob(f'{collect_folder}{g}/*.jpg')] for g in range(10)]
+  min_class_num = min([len(im) for im in images])
+  data = []
+  for i,classes in enumerate(images):
+    for im in classes[:min_class_num]:
+      im = im.astype("float") / 255.0
+      im = img_to_array(im)
+      data.append((im,i))
+  X,Y = [],[]
+  for d in data:
+    X.append(d[0])
+    Y.append(d[1])
+  X = np.array(X)
+  Y = np.array(Y,dtype=np.uint8)
+  # split = .8
+  # train_X = X[:int(split*len(X))]
+  # test_X = X[:-int(split*len(X))]
+
+  # train_Y = Y[:int(split*len(Y))]
+  # test_Y = Y[:-int(split*len(Y))]
+  train_X,test_X,train_Y,test_Y = train_test_split(X,Y,test_size=.2)
+  print(len(X),len(test_X),len(train_X))
+
+
+print(train_X.shape,type(train_X[0]),train_X[0].shape)
+print(train_Y.shape,type(train_Y),type(train_Y[0]))
 
 le = LabelBinarizer()
 train_Y = le.fit_transform(train_Y)

@@ -33,8 +33,8 @@ if __name__ == "__main__":
 
   # Load Classification model
 
-  model_date = "20200915_182309"
-  model_name = "cp-04-0.0603.h5"
+  model_date = "20200916_122327"
+  model_name = "cp-66-0.0508.h5"
   model_path = f"./Model/Output/{model_date}/tmp/{model_name}"
   # model_path = f"./Model/Output/Models/optimized.h5"
   sudoku_model = load_model(model_path)

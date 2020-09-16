@@ -5,6 +5,7 @@
 /AR/__pycache__
 /Model/__pycache__
 /Model/Output
+/Model/Data
 /SudokuDLX/__pycache__
 /Utils/__pycache__
 *.h5
