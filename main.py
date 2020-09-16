@@ -53,6 +53,9 @@ if __name__ == "__main__":
 
   debug = None
   cap = cv.VideoCapture(0)
+  cap.set(cv.CAP_PROP_FRAME_WIDTH,W)
+  cap.set(cv.CAP_PROP_FRAME_HEIGHT,H)
+
   while True:
     s_loop = time()
     ret,orig = cap.read()
@@ -147,6 +150,9 @@ if __name__ == "__main__":
     loop_time = time()-s_loop
     stack1 = [orig]
     stack2 = []
+
+
+
     if debug is not None:
       stack2 = [debug]
     if di.show(a=stack1,b=stack2):
@@ -160,6 +166,7 @@ if __name__ == "__main__":
 
   cv.destroyAllWindows()
   cap.release()
+  wr.release()
 
 
 

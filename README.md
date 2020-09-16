@@ -5,20 +5,17 @@ Sudoku Application used to :
 * Solve the predicted board
 * Display an UI over the images
 
+
 ## Table of contents
-* [General info](#general-info)
 * [Preview](#preview)
 * [Technologies](#technologies)
 * [Setup](#setup)
 * [Features](#features)
 * [Status](#status)
-* [Inspiration](#inspiration)
-* [Contact](#contact)
 
-## General info
-Complete application used to link different knowledges
 
-## Screenshots
+## Preview
+![Preview](./preview.gif)
 
 ## Technologies
 * Python - version 3.8.3
@@ -28,22 +25,21 @@ Complete application used to link different knowledges
 ## Setup
 Inc.
 
-## Code Examples
-Show examples of usage:
+## How to run
+Main program
 `python main.py`
 
 ## Features
-List of features ready and TODOs for future development
-* BoardDetection & Tracker
-* Digit Classifier trained on personnal data
-* Solver
+* [BoardDetection & Tracker](./Utils/)
+* [Digit Classifier trained on personnal data](./Model)
+* [Solver](./SudokuDLX)
+* [AugmentedReality](./AR)
 
-To-do list:
-* Kivy app
+TODO:
+* Kivy Android app
 * Enhance detection/classification
+* Make Real AR (with Rt matrix enhanced over time instead of KeyPoints tracker)
+* Make everything work on tflight for android version
 
 ## Status
 Project is: _in progress_
-
-## Inspiration
-See submodules readme
