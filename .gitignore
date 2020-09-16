@@ -1,9 +1,10 @@
 /Old
-/__pycache__
-/SudokuDLX/__pycache__
-/Model/Output/tmp
 /images
 /Videos
+/__pycache__
 /AR/__pycache__
-/Utils/__pycache__
 /Model/__pycache__
+/Model/Output
+/SudokuDLX/__pycache__
+/Utils/__pycache__
+*.h5

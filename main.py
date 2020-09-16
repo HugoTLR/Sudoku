@@ -20,8 +20,8 @@ from AR.KPExtractor import KPExtractor
 
 
 if __name__ == "__main__":
-  R_H,R_W = 288,288
   CELL_SIZE = 28
+  R_H,R_W = CELL_SIZE*9,CELL_SIZE*9
 
   W,H = 640,480
   #FOCAL
@@ -32,9 +32,13 @@ if __name__ == "__main__":
   fn_pattern = "./pattern2.jpg"
 
   # Load Classification model
-  # model_path = "./Model/Output/optimized.h5"
-  model_path = "./Model/Output/tmp/cp-38-0.0509.h5"
+
+  model_date = "20200915_182309"
+  model_name = "cp-04-0.0603.h5"
+  model_path = f"./Model/Output/{model_date}/tmp/{model_name}"
+  # model_path = f"./Model/Output/Models/optimized.h5"
   sudoku_model = load_model(model_path)
+  print(sudoku_model.summary())
 
 
   #Instanciate Classes
@@ -47,6 +51,7 @@ if __name__ == "__main__":
 
   SOLVED = False
 
+  debug = None
   cap = cv.VideoCapture(0)
   while True:
     s_loop = time()
@@ -96,7 +101,7 @@ if __name__ == "__main__":
           cells,digits = ex.clear_cells(cells)
 
           #Ui for debugging purpose
-          # ui = ex.ui(cells)
+          debug = ex.ui(cells)
 
           #TODO: Look under
           preds = {}
@@ -139,7 +144,11 @@ if __name__ == "__main__":
 
 
     loop_time = time()-s_loop
-    if di.show(a=[orig]):
+    stack1 = [orig]
+    stack2 = []
+    if debug is not None:
+      stack2 = [debug]
+    if di.show(a=stack1,b=stack2):
       break
     
     # print(f"Looped in {loop_time:.3f} secs")

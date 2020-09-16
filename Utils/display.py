@@ -12,6 +12,8 @@ class Display:
 
   def show(self,**kwargs):
     for i,stack in enumerate(kwargs.values()):
+      if not stack:
+        continue
       cv.imshow(f"Stack {i}",np.hstack(stack))
     return cv.waitKey(self.delay) == ord('q') & 0xFF
 
