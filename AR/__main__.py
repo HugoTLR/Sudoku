@@ -43,9 +43,7 @@ result = [[0,8,0,0,0,7,0,0,9],\
 
 
 ui = di.build_sudoku_ui(tr.pattern,500,500,result)
-ui = cv.rotate(ui,cv.ROTATE_90_COUNTERCLOCKWISE)
-ui_pts = np.float32([[0, 0], [0, ui.shape[0] - 1], [ui.shape[1] - 1, ui.shape[0] - 1], [ui.shape[1] - 1, 0]]).reshape(-1, 1, 2)
-
+ui_pts = np.float32([[0, 0], [ui.shape[1] - 1, 0], [ui.shape[1] - 1, ui.shape[0] - 1], [0, ui.shape[0] - 1] ]).reshape(-1, 1, 2)
 
 
 
@@ -73,6 +71,8 @@ while True:
     warp_thresh = ex.unwrap(thresh,puzzle)
     warp = ex.unwrap(gray,puzzle)
 
+
+
     if tr.compare(warp_thresh):
       tr.puzzle = puzzle
 
@@ -80,6 +80,8 @@ while True:
         #Grab Tracking data
         src_pts = tr.get_cnts_points(True)
         dst_pts = tr.get_cnts_points(False)
+        src_pts = ex.order_points(src_pts.reshape((4,2))[::-1])
+        dst_pts = ex.order_points(dst_pts.reshape((4,2))[::-1])
 
         #Build homography and reprojection matrix
         H,mask = cv.findHomography(src_pts,dst_pts,cv.RANSAC,5.0)
