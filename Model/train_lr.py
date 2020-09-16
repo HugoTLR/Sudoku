@@ -19,6 +19,7 @@ import cv2 as cv
 import sys
 import os
 import sys
+import inspect
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -54,7 +55,7 @@ model.compile(loss="categorical_crossentropy",optimizer=opt,metrics=["accuracy"]
 
 # construct the image generator for data augmentation
 aug = ImageDataGenerator(width_shift_range=0.1,
-  height_shift_range=0.1, horizontal_flip=True,
+  height_shift_range=0.1, horizontal_flip=False,
   fill_mode="nearest")
 
 
@@ -93,6 +94,15 @@ if not os.path.exists(config.TRAINING_PATH):
 else:
   sys.exit(f"{config.TRAINING_PATH} already exists, exiting")
 
+
+with open(config.SUMMARY_PATH,'w') as f:
+  model.summary(print_fn=lambda x: f.write(x + '\n'))
+  model_code = inspect.getsourcelines(SudokuModel.build) #tuple (list_of_lines,nb_lines)
+  f.write('\n')
+  for line in model_code[0]:
+    f.write(line + '\n')
+
+
 stepSize = config.STEP_SIZE * (train_X.shape[0] // config.BATCH_SIZE)
 clr = CyclicLR(
   mode=config.CLR_METHOD,
@@ -104,7 +114,7 @@ model_checkpoint_callback = ModelCheckpoint(
     filepath=config.CP_PATH,
     monitor='val_loss',
     save_weights_only=False,
-    save_best_only=False,
+    save_best_only=True,
     save_frequency=1)
 
 # train the network
